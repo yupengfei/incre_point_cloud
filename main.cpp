@@ -6,8 +6,24 @@
 #include <fstream>
 #include <iomanip>
 #include <pcl/filters/voxel_grid.h>
+#include <chrono>
+#include <ctime>
 
 namespace fs = std::filesystem;
+
+// 添加获取时间戳的辅助函数
+std::string getCurrentTimestamp() {
+    auto now = std::chrono::system_clock::now();
+    auto now_c = std::chrono::system_clock::to_time_t(now);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now.time_since_epoch()
+    ) % 1000;
+    
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&now_c), "%Y-%m-%d %H:%M:%S");
+    ss << '.' << std::setfill('0') << std::setw(3) << ms.count();
+    return ss.str();
+}
 
 int main() {
     std::string folder_path = "/home/yupengfei/Downloads/3D";
@@ -72,13 +88,13 @@ int main() {
         
         total_original_points += cloud->size();
         
-        outFile << "文件: frame_" << i << ".pcd"
+        outFile << getCurrentTimestamp() << " 文件: frame_" << i << ".pcd"
                 << " 原始点数: " << cloud->size()
                 << " 降采样后点数: " << cloud_filtered->size()
                 << " 新增点数: " << (i == start_frame ? cloud_filtered->size() : new_points)
                 << " 累计总点数: " << accumulated_cloud->size()
                 << " 降采样率: " << std::fixed << std::setprecision(2) 
-                << (100.0 * (cloud->size() - cloud_filtered->size()) / cloud->size()) << "%" << std::endl;
+                << (100.0 * (cloud->size() - (i == start_frame ? cloud_filtered->size() : new_points)) / cloud->size()) << "%" << std::endl;
         
         // 保存每帧新增的点
         if(i == start_frame) {
