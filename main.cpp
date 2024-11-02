@@ -16,6 +16,7 @@ int main() {
     float resolution = 0.1f;  // 增大分辨率，使体素更大
     
     std::ofstream outFile("pcd_reader.out");
+    size_t total_original_points = 0;
     size_t total_points = 0;
     
     // 创建累积的点云
@@ -66,6 +67,8 @@ int main() {
             total_points += new_points;
         }
         
+        total_original_points += cloud->size();
+        
         outFile << "文件: frame_" << i << ".pcd"
                 << " 原始点数: " << cloud->size()
                 << " 降采样后点数: " << cloud_filtered->size()
@@ -77,7 +80,11 @@ int main() {
     
     // 保存最终的点云
     pcl::io::savePCDFile("accumulated_cloud.pcd", *accumulated_cloud);
-    outFile << "\n最终总点数: " << total_points << std::endl;
+    outFile << "\n统计信息：" << std::endl;
+    outFile << "原始总点数: " << total_original_points << std::endl;
+    outFile << "降采样后总点数: " << total_points << std::endl;
+    outFile << "总体降采样率: " << std::fixed << std::setprecision(2) 
+            << (100.0 * (total_original_points - total_points) / total_original_points) << "%" << std::endl;
     outFile.close();
     
     return 0;
