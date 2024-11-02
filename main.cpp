@@ -11,7 +11,7 @@ int main() {
     std::string folder_path = "/home/yupengfei/Downloads/3D";
     const int start_frame = 1;
     const int end_frame = 420;
-    float resolution = 0.1f;  // octree分辨率，根据需要调整
+    float resolution = 0.2f;  // octree分辨率，根据需要调整
     
     std::ofstream outFile("pcd_reader.out");
     size_t total_points = 0;
