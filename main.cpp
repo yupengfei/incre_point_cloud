@@ -13,7 +13,7 @@ int main() {
     std::string folder_path = "/home/yupengfei/Downloads/3D";
     const int start_frame = 1;
     const int end_frame = 420;
-    float resolution = 0.2f;  // octree分辨率，根据需要调整
+    float resolution = 0.1f;  // 增大分辨率，使体素更大
     
     std::ofstream outFile("pcd_reader.out");
     size_t total_points = 0;
@@ -26,6 +26,8 @@ int main() {
     // 创建体素栅格过滤器
     pcl::VoxelGrid<pcl::PointXYZI> voxel_filter;
     voxel_filter.setLeafSize(resolution, resolution, resolution);
+    voxel_filter.setDownsampleAllData(true);
+    voxel_filter.setMinimumPointsNumberPerVoxel(3);
     
     for(int i = start_frame; i <= end_frame; i++) {
         size_t new_points = 0;
