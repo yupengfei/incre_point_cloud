@@ -1,0 +1,8 @@
+pcd_reader
+pcd_reader.out
+viewer
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+accumulated_cloud.pcd
