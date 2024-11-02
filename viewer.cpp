@@ -28,6 +28,16 @@ int main() {
     // 设置相机参数
     viewer->initCameraParameters();
     
+    // 设置相机视角，使XY平面水平，Z轴向上
+    viewer->setCameraPosition(
+        0, 0, 20,    // 相机位置：在z轴上方
+        0, 0, 0,     // 相机视点：看向原点
+        0, 1, 0      // 相机朝向：y轴定义为向上方向
+    );
+    
+    // 或者使用更简单的方式
+    // viewer->setCameraPosition(0, -1, 0, 0, 0, 1); // 第一组参数是相机位置，第二组是向上方向
+    
     // 保持窗口显示
     while(!viewer->wasStopped()) {
         viewer->spinOnce();
