@@ -1,4 +1,4 @@
-#include <pcl/visualization/cloud_viewer.h>
+#include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 
@@ -10,14 +10,28 @@ int main() {
         return -1;
     }
 
-    // 创建视窗对象并给一个标题
-    pcl::visualization::CloudViewer viewer("点云显示");
-
-    // 显示点云
-    viewer.showCloud(cloud);
-
+    // 创建视窗对象
+    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("viewer"));
+    viewer->setBackgroundColor(0, 0, 0);  // 设置背景色为黑色
+    
+    // 创建颜色处理对象
+    pcl::visualization::PointCloudColorHandlerGenericField<pcl::PointXYZI>::Ptr color_handler(
+        new pcl::visualization::PointCloudColorHandlerGenericField<pcl::PointXYZI>(cloud, "intensity"));
+    
+    // 添加点云并设置显示属性
+    viewer->addPointCloud<pcl::PointXYZI>(cloud, *color_handler, "cloud");
+    viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "cloud");
+    
+    // 添加坐标系以便于观察
+    viewer->addCoordinateSystem(1.0);
+    
+    // 设置相机参数
+    viewer->initCameraParameters();
+    
     // 保持窗口显示
-    while(!viewer.wasStopped()) {}
+    while(!viewer->wasStopped()) {
+        viewer->spinOnce();
+    }
 
     return 0;
 }
