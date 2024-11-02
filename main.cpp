@@ -4,6 +4,8 @@
 #include <pcl/point_types.h>
 #include <pcl/octree/octree_pointcloud_changedetector.h>
 #include <fstream>
+#include <iomanip>
+#include <pcl/filters/voxel_grid.h>
 
 namespace fs = std::filesystem;
 
@@ -21,46 +23,54 @@ int main() {
     // 创建octree
     pcl::octree::OctreePointCloudChangeDetector<pcl::PointXYZI> octree(resolution);
     
+    // 创建体素栅格过滤器
+    pcl::VoxelGrid<pcl::PointXYZI> voxel_filter;
+    voxel_filter.setLeafSize(resolution, resolution, resolution);
+    
     for(int i = start_frame; i <= end_frame; i++) {
         size_t new_points = 0;
+        
         std::string file_path = folder_path + "/frame_" + std::to_string(i) + ".pcd";
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZI>);
         
         if(pcl::io::loadPCDFile<pcl::PointXYZI>(file_path, *cloud) == -1) {
             outFile << "无法读取文件: " << file_path << std::endl;
             continue;
         }
         
-        // 如果是第一帧，直接添加所有点
+        // 对点云进行体素化降采样
+        voxel_filter.setInputCloud(cloud);
+        voxel_filter.filter(*cloud_filtered);
+        
+        // 然后再用octree检测新点
         if(i == start_frame) {
-            *accumulated_cloud = *cloud;
+            *accumulated_cloud = *cloud_filtered;
             octree.setInputCloud(accumulated_cloud);
             octree.addPointsFromInputCloud();
-            total_points = cloud->size();
+            total_points = cloud_filtered->size();
         } else {
-            // 切换octree缓冲区
             octree.switchBuffers();
-            
-            // 设置新的点云
-            octree.setInputCloud(cloud);
+            octree.setInputCloud(cloud_filtered);
             octree.addPointsFromInputCloud();
             
-            // 获取新的点的索引
             std::vector<int> newPointIdxVector;
             octree.getPointIndicesFromNewVoxels(newPointIdxVector);
             
-            // 将新点添加到累积的点云中
-            new_points = newPointIdxVector.size();  // 记录新增点数
+            new_points = newPointIdxVector.size();
             for(const auto& idx : newPointIdxVector) {
-                accumulated_cloud->push_back(cloud->points[idx]);
+                accumulated_cloud->push_back(cloud_filtered->points[idx]);
             }
-            
-            total_points += new_points;  // 更新总点数
+            total_points += new_points;
         }
         
         outFile << "文件: frame_" << i << ".pcd"
-                << " 新增点数: " << (i == start_frame ? cloud->size() : new_points)
-                << " 累计总点数: " << accumulated_cloud->size() << std::endl;
+                << " 原始点数: " << cloud->size()
+                << " 降采样后点数: " << cloud_filtered->size()
+                << " 新增点数: " << (i == start_frame ? cloud_filtered->size() : new_points)
+                << " 累计总点数: " << accumulated_cloud->size()
+                << " 降采样率: " << std::fixed << std::setprecision(2) 
+                << (100.0 * (cloud->size() - cloud_filtered->size()) / cloud->size()) << "%" << std::endl;
     }
     
     // 保存最终的点云
