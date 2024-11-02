@@ -6,3 +6,4 @@ CMakeFiles/
 cmake_install.cmake
 Makefile
 accumulated_cloud.pcd
+accumulated_cloud/

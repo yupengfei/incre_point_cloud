@@ -30,8 +30,12 @@ int main() {
     voxel_filter.setDownsampleAllData(true);
     voxel_filter.setMinimumPointsNumberPerVoxel(3);
     
+    // 创建文件夹
+    fs::create_directory("accumulated_cloud");
+    
     for(int i = start_frame; i <= end_frame; i++) {
         size_t new_points = 0;
+        std::vector<int> newPointIdxVector;
         
         std::string file_path = folder_path + "/frame_" + std::to_string(i) + ".pcd";
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>);
@@ -57,7 +61,6 @@ int main() {
             octree.setInputCloud(cloud_filtered);
             octree.addPointsFromInputCloud();
             
-            std::vector<int> newPointIdxVector;
             octree.getPointIndicesFromNewVoxels(newPointIdxVector);
             
             new_points = newPointIdxVector.size();
@@ -76,10 +79,36 @@ int main() {
                 << " 累计总点数: " << accumulated_cloud->size()
                 << " 降采样率: " << std::fixed << std::setprecision(2) 
                 << (100.0 * (cloud->size() - cloud_filtered->size()) / cloud->size()) << "%" << std::endl;
+        
+        // 保存每帧新增的点
+        if(i == start_frame) {
+            // 第一帧所有点都是新点
+            std::string bin_path = "accumulated_cloud/frame_" + std::to_string(i) + "_new_points.bin";
+            std::ofstream bin_file(bin_path, std::ios::binary);
+            for(const auto& point : cloud_filtered->points) {
+                bin_file.write(reinterpret_cast<const char*>(&point.x), sizeof(float));
+                bin_file.write(reinterpret_cast<const char*>(&point.y), sizeof(float));
+                bin_file.write(reinterpret_cast<const char*>(&point.z), sizeof(float));
+                bin_file.write(reinterpret_cast<const char*>(&point.intensity), sizeof(float));
+            }
+            bin_file.close();
+        } else {
+            // 其他帧只保存新点
+            std::string bin_path = "accumulated_cloud/frame_" + std::to_string(i) + "_new_points.bin";
+            std::ofstream bin_file(bin_path, std::ios::binary);
+            for(const auto& idx : newPointIdxVector) {
+                const auto& point = cloud_filtered->points[idx];
+                bin_file.write(reinterpret_cast<const char*>(&point.x), sizeof(float));
+                bin_file.write(reinterpret_cast<const char*>(&point.y), sizeof(float));
+                bin_file.write(reinterpret_cast<const char*>(&point.z), sizeof(float));
+                bin_file.write(reinterpret_cast<const char*>(&point.intensity), sizeof(float));
+            }
+            bin_file.close();
+        }
     }
     
     // 保存最终的点云
-    pcl::io::savePCDFile("accumulated_cloud.pcd", *accumulated_cloud);
+    pcl::io::savePCDFile("accumulated_cloud/accumulated_cloud.pcd", *accumulated_cloud);
     outFile << "\n统计信息：" << std::endl;
     outFile << "原始总点数: " << total_original_points << std::endl;
     outFile << "降采样后总点数: " << total_points << std::endl;
